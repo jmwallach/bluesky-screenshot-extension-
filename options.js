@@ -47,8 +47,13 @@ document.addEventListener('DOMContentLoaded', () => {
    * Save settings to storage
    */
   async function saveSettings() {
-    const identifier = identifierInput.value.trim();
+    let identifier = identifierInput.value.trim();
     const password = passwordInput.value.trim();
+
+    // Remove @ symbol if present
+    if (identifier.startsWith('@')) {
+      identifier = identifier.substring(1);
+    }
 
     if (!identifier || !password) {
       showStatus('Please fill in all fields', 'error');
@@ -76,8 +81,13 @@ document.addEventListener('DOMContentLoaded', () => {
    * Test Bluesky connection
    */
   async function testConnection() {
-    const identifier = identifierInput.value.trim();
+    let identifier = identifierInput.value.trim();
     const password = passwordInput.value.trim();
+
+    // Remove @ symbol if present
+    if (identifier.startsWith('@')) {
+      identifier = identifier.substring(1);
+    }
 
     if (!identifier || !password) {
       showStatus('Please fill in all fields first', 'error');

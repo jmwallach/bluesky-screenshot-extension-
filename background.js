@@ -30,11 +30,43 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
         return;
       }
 
-      // Send message to content script to start the process
-      chrome.tabs.sendMessage(tab.id, {
-        action: 'captureSelection',
-        selectedText: info.selectionText,
-      });
+      // Try to send message to content script
+      try {
+        await chrome.tabs.sendMessage(tab.id, {
+          action: 'captureSelection',
+          selectedText: info.selectionText,
+        });
+      } catch (error) {
+        // Content script not injected, inject it first
+        try {
+          await chrome.scripting.executeScript({
+            target: { tabId: tab.id },
+            files: ['content.js'],
+          });
+          
+          await chrome.scripting.insertCSS({
+            target: { tabId: tab.id },
+            files: ['content.css'],
+          });
+
+          // Wait a bit for script to initialize
+          await new Promise(resolve => setTimeout(resolve, 100));
+
+          // Try again
+          await chrome.tabs.sendMessage(tab.id, {
+            action: 'captureSelection',
+            selectedText: info.selectionText,
+          });
+        } catch (injectError) {
+          console.error('Failed to inject content script:', injectError);
+          await chrome.notifications.create({
+            type: 'basic',
+            iconUrl: 'icons/icon48.png',
+            title: 'Error',
+            message: 'Cannot capture screenshots on this page. Try a different webpage.',
+          });
+        }
+      }
     } catch (error) {
       console.error('Context menu error:', error);
       await chrome.notifications.create({

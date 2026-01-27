@@ -1,0 +1,13 @@
+fix: Convert extension from TypeScript to plain JavaScript for compatibility
+
+- Remove all TypeScript syntax (type assertions, non-null operators)
+- Eliminate ES6 module imports that caused service worker failures
+- Remove "type": "module" from manifest.json
+- Inline postToBluesky functionality directly in content.js
+- Add "scripting" permission for dynamic script injection
+- Replace ErrorHandler imports with inline error handling
+- Simplify error messages with console.error and notifications
+- Fix syntax errors on lines 50, 63, and 115 of background.js
+- Ensure compatibility with Manifest V3 service workers
+
+This resolves the "Uncaught SyntaxError" and "Service worker registration failed" errors.
