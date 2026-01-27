@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bluesky Screenshot Extension - Settings</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 40px 20px;
+    }
+
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      overflow: hidden;
+    }
+
+    .header {
+      background: #0085ff;
+      color: white;
+      padding: 30px;
+      text-align: center;
+    }
+
+    .header h1 {
+      font-size: 28px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .header p {
+      font-size: 14px;
+      opacity: 0.9;
+    }
+
+    .content {
+      padding: 40px;
+    }
+
+    .form-group {
+      margin-bottom: 24px;
+    }
+
+    label {
+      display: block;
+      font-size: 14px;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 8px;
+    }
+
+    input[type="text"],
+    input[type="password"] {
+      width: 100%;
+      padding: 12px 16px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 15px;
+      transition: all 0.2s;
+      font-family: inherit;
+    }
+
+    input[type="text"]:focus,
+    input[type="password"]:focus {
+      outline: none;
+      border-color: #0085ff;
+      box-shadow: 0 0 0 3px rgba(0, 133, 255, 0.1);
+    }
+
+    .help-text {
+      font-size: 13px;
+      color: #666;
+      margin-top: 6px;
+    }
+
+    .help-text a {
+      color: #0085ff;
+      text-decoration: none;
+    }
+
+    .help-text a:hover {
+      text-decoration: underline;
+    }
+
+    .button-group {
+      display: flex;
+      gap: 12px;
+      margin-top: 32px;
+    }
+
+    button {
+      flex: 1;
+      padding: 14px 24px;
+      border: none;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: inherit;
+    }
+
+    .btn-primary {
+      background: #0085ff;
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #0070dd;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0, 133, 255, 0.3);
+    }
+
+    .btn-secondary {
+      background: #f5f5f5;
+      color: #666;
+    }
+
+    .btn-secondary:hover {
+      background: #e0e0e0;
+    }
+
+    .status-message {
+      margin-top: 20px;
+      padding: 12px 16px;
+      border-radius: 8px;
+      font-size: 14px;
+      text-align: center;
+      display: none;
+    }
+
+    .status-message.success {
+      background: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+      display: block;
+    }
+
+    .status-message.error {
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+      display: block;
+    }
+
+    .info-box {
+      background: #e3f2fd;
+      border-left: 4px solid #0085ff;
+      padding: 16px;
+      border-radius: 8px;
+      margin-top: 24px;
+    }
+
+    .info-box h3 {
+      font-size: 16px;
+      color: #0085ff;
+      margin-bottom: 8px;
+    }
+
+    .info-box p {
+      font-size: 14px;
+      color: #333;
+      line-height: 1.6;
+    }
+
+    .info-box ol {
+      margin-top: 12px;
+      margin-left: 20px;
+    }
+
+    .info-box li {
+      font-size: 14px;
+      color: #333;
+      margin-bottom: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>⚡ Bluesky Screenshot Poster</h1>
+      <p>Configure your Bluesky credentials to start posting</p>
+    </div>
+
+    <div class="content">
+      <form id="settingsForm">
+        <div class="form-group">
+          <label for="identifier">Bluesky Handle or Email</label>
+          <input 
+            type="text" 
+            id="identifier" 
+            placeholder="username.bsky.social or email@example.com"
+            required
+          />
+          <div class="help-text">
+            Enter your Bluesky handle (e.g., username.bsky.social) or email address
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="password">App Password</label>
+          <input 
+            type="password" 
+            id="password" 
+            placeholder="Enter your app password"
+            required
+          />
+          <div class="help-text">
+            ⚠️ Use an <a href="https://bsky.app/settings/app-passwords" target="_blank">app password</a>, not your main password. 
+            Generate one at: Settings → App Passwords
+          </div>
+        </div>
+
+        <div class="button-group">
+          <button type="submit" class="btn-primary">Save Settings</button>
+          <button type="button" class="btn-secondary" id="testButton">Test Connection</button>
+        </div>
+
+        <div id="statusMessage" class="status-message"></div>
+      </form>
+
+      <div class="info-box">
+        <h3>📖 How to use:</h3>
+        <ol>
+          <li>Highlight any text on a webpage</li>
+          <li>Right-click and select "Post to Bluesky"</li>
+          <li>The extension will capture a screenshot and post it with the text as alt text</li>
+        </ol>
+        <p style="margin-top: 12px;">
+          Your credentials are stored locally and only used to authenticate with Bluesky.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <script src="options.js"></script>
+</body>
+</html>
