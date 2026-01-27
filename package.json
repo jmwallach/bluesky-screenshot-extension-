@@ -1,0 +1,23 @@
+{
+  "name": "bluesky-screenshot-extension",
+  "version": "1.0.0",
+  "description": "Chrome extension to capture screenshots of highlighted text and post to Bluesky",
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc --watch",
+    "lint": "eslint . --ext .ts,.js"
+  },
+  "keywords": [
+    "bluesky",
+    "screenshot",
+    "chrome-extension",
+    "social-media"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/chrome": "^0.0.254",
+    "typescript": "^5.3.3",
+    "eslint": "^8.56.0"
+  }
+}
