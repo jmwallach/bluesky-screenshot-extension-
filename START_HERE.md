@@ -6,18 +6,33 @@ The extension is **almost** ready to load, but you need to add icon files first.
 
 ### Quick Fix: Create Placeholder Icons
 
+**EASIEST METHOD - Use the Included Icon Generator:**
+
 1. **Extract the zip file** to a folder
-2. **Create an `icons` folder** inside that folder
-3. **Download these placeholder icons** (or create your own):
-   - Go to https://via.placeholder.com/16x16/0085ff/ffffff?text=B
-   - Right-click → Save as `icon16.png` in the icons folder
-   - Repeat for: `icon32.png` (32x32), `icon48.png` (48x48), `icon128.png` (128x128)
-   
-   Or use these URLs:
-   - 16x16: https://via.placeholder.com/16x16/0085ff/ffffff?text=B
-   - 32x32: https://via.placeholder.com/32x32/0085ff/ffffff?text=B
-   - 48x48: https://via.placeholder.com/48x48/0085ff/ffffff?text=B
-   - 128x128: https://via.placeholder.com/128x128/0085ff/ffffff?text=B
+2. **Open `icon-generator.html`** in any browser (Chrome, Firefox, etc.)
+3. **Customize** the text and colors if you want (optional)
+4. **Click "Download Icons as ZIP"**
+5. **Extract `icons.zip`** directly into your extension folder
+   - This creates an `icons/` folder with all 4 PNG files
+   - The `icons/` folder is already in `.gitignore` so it won't be committed to Git
+
+That's it! The icons are generated and placed correctly.
+
+#### Alternative Methods (if needed):
+
+**Option A: Generate Online**
+Go to **https://favicon.io/favicon-generator/** and:
+- Text: Type "B" or "BS"
+- Background: Choose blue (#0085ff) or any color
+- Click "Download" - it generates all sizes!
+- Extract into your extension folder as an `icons/` directory
+
+**Option B: Download from Iconduck (Free, No Sign-up)**
+- Go to **https://iconduck.com/** 
+- Search for "camera" or "screenshot"
+- Download any icon you like
+- Use an online image resizer like **https://www.iloveimg.com/resize-image** to create all 4 sizes
+- Save them in an `icons/` folder
 
 ### Your Folder Structure Should Look Like:
 
