@@ -1,15 +1,4 @@
 // content.js - Content Script
-import {
-  SelectionError,
-  ScreenshotError,
-  ErrorHandler,
-  postToBluesky,
-} from './error-handling-design.js';
-
-const errorHandler = new ErrorHandler({
-  enableLogging: true,
-  showNotifications: true,
-});
 
 // State
 let isSelectionMode = false;
@@ -30,8 +19,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         sendResponse({ success: true });
       }
     } catch (error) {
-      await errorHandler.handle(error, 'contentScript');
-      sendResponse({ success: false, error: (error).message });
+      console.error('Content script error:', error);
+      showError(error.message ||'An error occurred. Please try again.');
+      sendResponse({ success: false, error: error.message });
     }
   })();
 
@@ -63,30 +53,24 @@ async function handleCaptureSelection(selectedText) {
   try {
     // Validate selection
     if (!selectedText || selectedText.trim().length === 0) {
-      throw new SelectionError('No text selected', 'Please highlight some text first.');
+      throw new Error('Please highlight some text first.');
     }
 
     if (selectedText.length > 1000) {
-      throw new SelectionError(
-        'Text too long',
-        'Please select less than 1000 characters for alt text.'
-      );
+      throw new Error('Please select less than 1000 characters for alt text.');
     }
 
     // Get the bounding rectangle of the selection
     const selection = window.getSelection();
     if (!selection || selection.rangeCount === 0) {
-      throw new SelectionError('Selection lost', 'Please try selecting the text again.');
+      throw new Error('Please try selecting the text again.');
     }
 
     const range = selection.getRangeAt(0);
     const rect = range.getBoundingClientRect();
 
     if (rect.width === 0 || rect.height === 0) {
-      throw new ScreenshotError(
-        'Invalid selection region',
-        'Cannot capture an empty region. Please select visible text.'
-      );
+      throw new Error('Cannot capture an empty region. Please select visible text.');
     }
 
     // Add padding around the selection
@@ -108,7 +92,8 @@ async function handleCaptureSelection(selectedText) {
       selectedText: selectedText.trim(),
     });
   } catch (error) {
-    await errorHandler.handle(error, 'handleCaptureSelection');
+    showError(error.message);
+    throw error;
   }
 }
 
@@ -129,10 +114,7 @@ async function cropAndPost(dataUrl, region, selectedText) {
     const ctx = canvas.getContext('2d');
 
     if (!ctx) {
-      throw new ScreenshotError(
-        'Canvas context failed',
-        'Failed to process screenshot. Please try again.'
-      );
+      throw new Error('Failed to process screenshot. Please try again.');
     }
 
     // Set canvas size to cropped region
@@ -162,15 +144,86 @@ async function cropAndPost(dataUrl, region, selectedText) {
     ]);
 
     // Post to Bluesky
-    await postToBluesky(croppedDataUrl, selectedText, {
-      identifier: blueskyIdentifier,
-      password: blueskyPassword,
-    });
+    await postToBluesky(croppedDataUrl, selectedText, blueskyIdentifier, blueskyPassword);
 
     // Show success notification
     showSuccessOverlay();
   } catch (error) {
-    await errorHandler.handle(error, 'cropAndPost');
+    showError(error.message || 'Failed to post to Bluesky. Please try again.');
+    throw error;
+  }
+}
+
+/**
+ * Post to Bluesky API
+ */
+async function postToBluesky(imageData, altText, identifier, password) {
+  // Authenticate
+  const authResponse = await fetch('https://bsky.social/xrpc/com.atproto.server.createSession', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ identifier, password }),
+  });
+
+  if (!authResponse.ok) {
+    if (authResponse.status === 401) {
+      throw new Error('Invalid credentials. Please check your Bluesky login in settings.');
+    }
+    throw new Error('Authentication failed. Please try again.');
+  }
+
+  const { accessJwt } = await authResponse.json();
+
+  // Convert data URL to blob
+  const response = await fetch(imageData);
+  const imageBlob = await response.blob();
+
+  // Upload image
+  const uploadResponse = await fetch('https://bsky.social/xrpc/com.atproto.repo.uploadBlob', {
+    method: 'POST',
+    headers: {
+      'Content-Type': imageBlob.type,
+      Authorization: `Bearer ${accessJwt}`,
+    },
+    body: imageBlob,
+  });
+
+  if (!uploadResponse.ok) {
+    if (uploadResponse.status === 429) {
+      throw new Error('Too many posts. Please wait a moment before trying again.');
+    }
+    throw new Error('Failed to upload image. Please try again.');
+  }
+
+  const { blob } = await uploadResponse.json();
+
+  // Create post
+  const postResponse = await fetch('https://bsky.social/xrpc/com.atproto.repo.createRecord', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${accessJwt}`,
+    },
+    body: JSON.stringify({
+      repo: identifier,
+      collection: 'app.bsky.feed.post',
+      record: {
+        $type: 'app.bsky.feed.post',
+        text: '',
+        createdAt: new Date().toISOString(),
+        embed: {
+          $type: 'app.bsky.embed.images',
+          images: [{
+            alt: altText,
+            image: blob,
+          }],
+        },
+      },
+    }),
+  });
+
+  if (!postResponse.ok) {
+    throw new Error('Failed to create post. Please try again.');
   }
 }
 
@@ -193,21 +246,10 @@ function highlightRegion(rect) {
     animation: pulse 0.5s ease-in-out;
   `;
 
-  // Add animation
-  const style = document.createElement('style');
-  style.textContent = `
-    @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.5; }
-    }
-  `;
-  document.head.appendChild(style);
-
   document.body.appendChild(overlay);
 
   setTimeout(() => {
     overlay.remove();
-    style.remove();
   }, 1000);
 }
 
@@ -233,21 +275,6 @@ function showTooltip(message) {
     animation: slideIn 0.3s ease-out;
   `;
 
-  const style = document.createElement('style');
-  style.textContent = `
-    @keyframes slideIn {
-      from {
-        transform: translateX(400px);
-        opacity: 0;
-      }
-      to {
-        transform: translateX(0);
-        opacity: 1;
-      }
-    }
-  `;
-  document.head.appendChild(style);
-
   document.body.appendChild(tooltip);
 }
 
@@ -257,9 +284,35 @@ function showTooltip(message) {
 function hideTooltip() {
   const tooltip = document.getElementById('bluesky-extension-tooltip');
   if (tooltip) {
-    tooltip.style.animation = 'slideOut 0.3s ease-in';
-    setTimeout(() => tooltip.remove(), 300);
+    tooltip.remove();
   }
+}
+
+/**
+ * Show error message
+ */
+function showError(message) {
+  const error = document.createElement('div');
+  error.textContent = '⚠️ ' + message;
+  error.style.cssText = `
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: #dc3545;
+    color: white;
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: 14px;
+    z-index: 1000000;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  `;
+
+  document.body.appendChild(error);
+
+  setTimeout(() => {
+    error.remove();
+  }, 5000);
 }
 
 /**
@@ -282,35 +335,12 @@ function showSuccessOverlay() {
     font-weight: 600;
     z-index: 1000001;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
-    animation: successPop 0.5s ease-out;
   `;
-
-  const style = document.createElement('style');
-  style.textContent = `
-    @keyframes successPop {
-      0% {
-        transform: translate(-50%, -50%) scale(0.5);
-        opacity: 0;
-      }
-      50% {
-        transform: translate(-50%, -50%) scale(1.1);
-      }
-      100% {
-        transform: translate(-50%, -50%) scale(1);
-        opacity: 1;
-      }
-    }
-  `;
-  document.head.appendChild(style);
 
   document.body.appendChild(overlay);
 
   setTimeout(() => {
-    overlay.style.animation = 'fadeOut 0.3s ease-in';
-    setTimeout(() => {
-      overlay.remove();
-      style.remove();
-    }, 300);
+    overlay.remove();
   }, 2000);
 }
 

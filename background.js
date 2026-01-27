@@ -1,15 +1,4 @@
 // background.js - Service Worker for Chromium Extension
-import { 
-  ErrorHandler, 
-  handleScreenshotAndPost,
-  PermissionError 
-} from './error-handling-design.js';
-
-const errorHandler = new ErrorHandler({
-  enableLogging: true,
-  showNotifications: true,
-  maxRetries: 3,
-});
 
 // Create context menu on installation
 chrome.runtime.onInstalled.addListener(() => {
@@ -47,7 +36,13 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
         selectedText: info.selectionText,
       });
     } catch (error) {
-      await errorHandler.handle(error, 'contextMenu');
+      console.error('Context menu error:', error);
+      await chrome.notifications.create({
+        type: 'basic',
+        iconUrl: 'icons/icon48.png',
+        title: 'Error',
+        message: 'Failed to capture screenshot. Please try again.',
+      });
     }
   }
 });
@@ -60,12 +55,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         const { region, selectedText } = message;
 
         // Capture the visible tab
-        const dataUrl = await chrome.tabs.captureVisibleTab(sender.tab!.windowId, {
+        const dataUrl = await chrome.tabs.captureVisibleTab(sender.tab.windowId, {
           format: 'png',
         });
 
         // Send back to content script for cropping
-        chrome.tabs.sendMessage(sender.tab!.id!, {
+        chrome.tabs.sendMessage(sender.tab.id, {
           action: 'cropAndPost',
           dataUrl,
           region,
@@ -73,12 +68,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         });
 
         sendResponse({ success: true });
-      } else if (message.action === 'postToBluesky') {
-        // This will be handled by importing the postToBluesky function
-        sendResponse({ success: true });
       }
     } catch (error) {
-      await errorHandler.handle(error, 'messageHandler');
+      console.error('Message handler error:', error);
       sendResponse({ success: false, error: error.message });
     }
   })();
@@ -112,7 +104,7 @@ chrome.action.onClicked.addListener(async (tab) => {
 
       // Try again after a brief delay
       setTimeout(async () => {
-        await chrome.tabs.sendMessage(tab.id!, { action: 'startSelectionMode' });
+        await chrome.tabs.sendMessage(tab.id, { action: 'startSelectionMode' });
       }, 100);
     }
   }

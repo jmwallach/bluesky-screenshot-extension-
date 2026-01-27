@@ -7,14 +7,14 @@
     "activeTab",
     "contextMenus",
     "notifications",
-    "storage"
+    "storage",
+    "scripting"
   ],
   "host_permissions": [
     "https://bsky.social/*"
   ],
   "background": {
-    "service_worker": "background.js",
-    "type": "module"
+    "service_worker": "background.js"
   },
   "content_scripts": [
     {
