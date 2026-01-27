@@ -47,7 +47,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
         selectedText: info.selectionText,
       });
     } catch (error) {
-      await errorHandler.handle(error as Error, 'contextMenu');
+      await errorHandler.handle(error, 'contextMenu');
     }
   }
 });
@@ -78,8 +78,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         sendResponse({ success: true });
       }
     } catch (error) {
-      await errorHandler.handle(error as Error, 'messageHandler');
-      sendResponse({ success: false, error: (error as Error).message });
+      await errorHandler.handle(error, 'messageHandler');
+      sendResponse({ success: false, error: error.message });
     }
   })();
 

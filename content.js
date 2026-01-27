@@ -30,8 +30,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         sendResponse({ success: true });
       }
     } catch (error) {
-      await errorHandler.handle(error as Error, 'contentScript');
-      sendResponse({ success: false, error: (error as Error).message });
+      await errorHandler.handle(error, 'contentScript');
+      sendResponse({ success: false, error: (error).message });
     }
   })();
 
@@ -108,7 +108,7 @@ async function handleCaptureSelection(selectedText) {
       selectedText: selectedText.trim(),
     });
   } catch (error) {
-    await errorHandler.handle(error as Error, 'handleCaptureSelection');
+    await errorHandler.handle(error, 'handleCaptureSelection');
   }
 }
 
@@ -170,7 +170,7 @@ async function cropAndPost(dataUrl, region, selectedText) {
     // Show success notification
     showSuccessOverlay();
   } catch (error) {
-    await errorHandler.handle(error as Error, 'cropAndPost');
+    await errorHandler.handle(error, 'cropAndPost');
   }
 }
 
