@@ -103,6 +103,10 @@ async function handleCaptureSelection(selectedText) {
  */
 async function cropAndPost(dataUrl, region, selectedText) {
   try {
+    console.log('📐 Starting crop and post process...');
+    console.log('Region:', region);
+    console.log('Selected text:', selectedText);
+    
     // Create a canvas to crop the image
     const img = new Image();
     await new Promise((resolve, reject) => {
@@ -110,6 +114,8 @@ async function cropAndPost(dataUrl, region, selectedText) {
       img.onerror = reject;
       img.src = dataUrl;
     });
+
+    console.log('Image loaded:', img.width, 'x', img.height);
 
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
@@ -121,6 +127,9 @@ async function cropAndPost(dataUrl, region, selectedText) {
     // Set canvas size to cropped region
     canvas.width = region.width * window.devicePixelRatio;
     canvas.height = region.height * window.devicePixelRatio;
+
+    console.log('Canvas size:', canvas.width, 'x', canvas.height);
+    console.log('Device pixel ratio:', window.devicePixelRatio);
 
     // Draw the cropped portion
     ctx.drawImage(
@@ -137,6 +146,7 @@ async function cropAndPost(dataUrl, region, selectedText) {
 
     // Convert to data URL
     const croppedDataUrl = canvas.toDataURL('image/png');
+    console.log('Cropped image size:', croppedDataUrl.length, 'characters');
 
     // Get credentials
     const { blueskyIdentifier, blueskyPassword } = await chrome.storage.sync.get([
@@ -144,12 +154,15 @@ async function cropAndPost(dataUrl, region, selectedText) {
       'blueskyPassword',
     ]);
 
+    console.log('Retrieved credentials from storage');
+
     // Post to Bluesky
     await postToBluesky(croppedDataUrl, selectedText, blueskyIdentifier, blueskyPassword);
 
     // Show success notification
     showSuccessOverlay();
   } catch (error) {
+    console.error('❌ Error in cropAndPost:', error);
     showError(error.message || 'Failed to post to Bluesky. Please try again.');
     throw error;
   }
@@ -159,27 +172,43 @@ async function cropAndPost(dataUrl, region, selectedText) {
  * Post to Bluesky API
  */
 async function postToBluesky(imageData, altText, identifier, password) {
+  console.log('🔵 Starting Bluesky post process...');
+  console.log('Alt text length:', altText.length);
+  console.log('Identifier:', identifier);
+  
   // Authenticate
+  console.log('🔐 Authenticating with Bluesky...');
   const authResponse = await fetch('https://bsky.social/xrpc/com.atproto.server.createSession', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ identifier, password }),
   });
 
+  console.log('Auth response status:', authResponse.status);
+
   if (!authResponse.ok) {
+    const errorData = await authResponse.json().catch(() => ({}));
+    console.error('❌ Authentication failed:', errorData);
     if (authResponse.status === 401) {
       throw new Error('Invalid credentials. Please check your Bluesky login in settings.');
     }
     throw new Error('Authentication failed. Please try again.');
   }
 
-  const { accessJwt } = await authResponse.json();
+  const authData = await authResponse.json();
+  const { accessJwt, did } = authData;
+  console.log('✅ Authentication successful!');
+  console.log('DID:', did);
 
   // Convert data URL to blob
+  console.log('📸 Converting screenshot to blob...');
   const response = await fetch(imageData);
   const imageBlob = await response.blob();
+  console.log('Image size:', imageBlob.size, 'bytes');
+  console.log('Image type:', imageBlob.type);
 
   // Upload image
+  console.log('⬆️ Uploading image to Bluesky...');
   const uploadResponse = await fetch('https://bsky.social/xrpc/com.atproto.repo.uploadBlob', {
     method: 'POST',
     headers: {
@@ -189,43 +218,65 @@ async function postToBluesky(imageData, altText, identifier, password) {
     body: imageBlob,
   });
 
+  console.log('Upload response status:', uploadResponse.status);
+
   if (!uploadResponse.ok) {
+    const errorData = await uploadResponse.json().catch(() => ({}));
+    console.error('❌ Image upload failed:', errorData);
     if (uploadResponse.status === 429) {
       throw new Error('Too many posts. Please wait a moment before trying again.');
     }
     throw new Error('Failed to upload image. Please try again.');
   }
 
-  const { blob } = await uploadResponse.json();
+  const uploadData = await uploadResponse.json();
+  const { blob } = uploadData;
+  console.log('✅ Image uploaded successfully!');
+  console.log('Blob ref:', blob.ref);
 
   // Create post
+  console.log('📝 Creating post...');
+  const postData = {
+    repo: identifier,
+    collection: 'app.bsky.feed.post',
+    record: {
+      $type: 'app.bsky.feed.post',
+      text: '',
+      createdAt: new Date().toISOString(),
+      embed: {
+        $type: 'app.bsky.embed.images',
+        images: [{
+          alt: altText,
+          image: blob,
+        }],
+      },
+    },
+  };
+  
+  console.log('Post payload:', JSON.stringify(postData, null, 2));
+  
   const postResponse = await fetch('https://bsky.social/xrpc/com.atproto.repo.createRecord', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${accessJwt}`,
     },
-    body: JSON.stringify({
-      repo: identifier,
-      collection: 'app.bsky.feed.post',
-      record: {
-        $type: 'app.bsky.feed.post',
-        text: '',
-        createdAt: new Date().toISOString(),
-        embed: {
-          $type: 'app.bsky.embed.images',
-          images: [{
-            alt: altText,
-            image: blob,
-          }],
-        },
-      },
-    }),
+    body: JSON.stringify(postData),
   });
 
+  console.log('Post response status:', postResponse.status);
+
   if (!postResponse.ok) {
+    const errorData = await postResponse.json().catch(() => ({}));
+    console.error('❌ Post creation failed:', errorData);
     throw new Error('Failed to create post. Please try again.');
   }
+
+  const postResult = await postResponse.json();
+  console.log('✅ Post created successfully!');
+  console.log('Post URI:', postResult.uri);
+  console.log('Post CID:', postResult.cid);
+  console.log('🎉 Done! Check your Bluesky profile.');
 }
 
 /**

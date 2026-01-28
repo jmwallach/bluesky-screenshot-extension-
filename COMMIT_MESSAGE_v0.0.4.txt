@@ -1,0 +1,12 @@
+fix: Add host permissions and improve restricted page handling
+
+- Add http://*/* and https://*/* to host_permissions for reliable injection
+- Check for restricted protocols (chrome:, edge:, file:, etc.) before attempting injection
+- Improve error messages to guide users to valid pages
+- Increase script initialization delay to 200ms for reliability
+- Better logging for debugging injection issues
+
+This fixes the "Cannot access contents of the page" error on regular websites
+while providing clear feedback when trying to use on restricted pages.
+
+Fixes #4 - Content script injection permission error
