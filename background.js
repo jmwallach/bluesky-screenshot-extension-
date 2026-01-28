@@ -13,6 +13,21 @@ chrome.runtime.onInstalled.addListener(() => {
 chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   if (info.menuItemId === 'post-to-bluesky' && tab?.id) {
     try {
+      // Check if tab URL is accessible
+      const url = tab.url || '';
+      const restrictedProtocols = ['chrome:', 'chrome-extension:', 'edge:', 'about:', 'file:'];
+      const isRestricted = restrictedProtocols.some(protocol => url.startsWith(protocol));
+      
+      if (isRestricted) {
+        await chrome.notifications.create({
+          type: 'basic',
+          iconUrl: 'icons/icon48.png',
+          title: 'Cannot Use Here',
+          message: 'This extension cannot access browser pages or local files. Try a regular website.',
+        });
+        return;
+      }
+
       // Check if we have credentials
       const { blueskyIdentifier, blueskyPassword } = await chrome.storage.sync.get([
         'blueskyIdentifier',
@@ -37,7 +52,8 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
           selectedText: info.selectionText,
         });
       } catch (error) {
-        // Content script not injected, inject it first
+        // Content script not injected yet, inject it now
+        console.log('Content script not found, injecting...');
         try {
           await chrome.scripting.executeScript({
             target: { tabId: tab.id },
@@ -49,8 +65,8 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
             files: ['content.css'],
           });
 
-          // Wait a bit for script to initialize
-          await new Promise(resolve => setTimeout(resolve, 100));
+          // Wait for script to initialize
+          await new Promise(resolve => setTimeout(resolve, 200));
 
           // Try again
           await chrome.tabs.sendMessage(tab.id, {
@@ -62,8 +78,8 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
           await chrome.notifications.create({
             type: 'basic',
             iconUrl: 'icons/icon48.png',
-            title: 'Error',
-            message: 'Cannot capture screenshots on this page. Try a different webpage.',
+            title: 'Cannot Access Page',
+            message: 'Unable to capture screenshots on this page. Try a different website or reload the page.',
           });
         }
       }
@@ -73,7 +89,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
         type: 'basic',
         iconUrl: 'icons/icon48.png',
         title: 'Error',
-        message: 'Failed to capture screenshot. Please try again.',
+        message: 'An error occurred. Please try again or reload the page.',
       });
     }
   }

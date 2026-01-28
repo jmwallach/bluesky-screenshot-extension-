@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Bluesky Screenshot Poster",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "Highlight text, capture a screenshot, and post to Bluesky with alt text",
   "permissions": [
     "activeTab",
@@ -11,7 +11,9 @@
     "scripting"
   ],
   "host_permissions": [
-    "https://bsky.social/*"
+    "https://bsky.social/*",
+    "http://*/*",
+    "https://*/*"
   ],
   "background": {
     "service_worker": "background.js"

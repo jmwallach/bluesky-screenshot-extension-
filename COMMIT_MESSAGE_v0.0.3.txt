@@ -1,0 +1,11 @@
+fix: Correct screenshot cropping to capture visible text
+
+- Remove window.scrollX and window.scrollY from region calculation
+- Use viewport coordinates directly since captureVisibleTab only captures visible area
+- Fixes black screenshot issue caused by incorrect coordinate system
+
+The problem was mixing page coordinates (with scroll offsets) with viewport
+capture which only sees the visible browser window. Now coordinates match
+the captured area properly.
+
+Fixes #3 - Black screenshots
