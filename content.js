@@ -75,9 +75,10 @@ async function handleCaptureSelection(selectedText) {
 
     // Add padding around the selection
     const padding = 10;
+    // Use viewport coordinates since captureVisibleTab only captures the visible area
     const region = {
-      x: Math.max(0, rect.left - padding + window.scrollX),
-      y: Math.max(0, rect.top - padding + window.scrollY),
+      x: Math.max(0, rect.left - padding),
+      y: Math.max(0, rect.top - padding),
       width: rect.width + padding * 2,
       height: rect.height + padding * 2,
     };

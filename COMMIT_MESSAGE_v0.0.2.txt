@@ -1,0 +1,12 @@
+fix: Improve username handling and content script injection
+
+- Auto-strip @ symbol from Bluesky handles in settings
+- Update help text to clarify @ symbol should not be included
+- Fix "Receiving end does not exist" error by injecting content script when needed
+- Add fallback script injection with CSS loading
+- Add run_at: document_idle to content_scripts for better reliability
+- Show user-friendly error on restricted pages (chrome://, etc.)
+- Improve error handling in context menu click handler
+
+Fixes #1 - Username validation issue
+Fixes #2 - Connection error on first use
