@@ -148,22 +148,11 @@ async function cropAndPost(dataUrl, region, selectedText) {
     const croppedDataUrl = canvas.toDataURL('image/png');
     console.log('Cropped image size:', croppedDataUrl.length, 'characters');
 
-    // Get credentials
-    const { blueskyIdentifier, blueskyPassword } = await chrome.storage.sync.get([
-      'blueskyIdentifier',
-      'blueskyPassword',
-    ]);
-
-    console.log('Retrieved credentials from storage');
-
-    // Post to Bluesky
-    await postToBluesky(croppedDataUrl, selectedText, blueskyIdentifier, blueskyPassword);
-
-    // Show success notification
-    showSuccessOverlay();
+    // Show compose modal instead of posting directly
+    showComposeModal(croppedDataUrl, selectedText);
   } catch (error) {
     console.error('❌ Error in cropAndPost:', error);
-    showError(error.message || 'Failed to post to Bluesky. Please try again.');
+    showError(error.message || 'Failed to process screenshot. Please try again.');
     throw error;
   }
 }
@@ -171,7 +160,7 @@ async function cropAndPost(dataUrl, region, selectedText) {
 /**
  * Post to Bluesky API
  */
-async function postToBluesky(imageData, altText, identifier, password) {
+async function postToBluesky(imageData, altText, identifier, password, postText = '') {
   console.log('🔵 Starting Bluesky post process...');
   console.log('Alt text length:', altText.length);
   console.log('Identifier:', identifier);
@@ -241,7 +230,7 @@ async function postToBluesky(imageData, altText, identifier, password) {
     collection: 'app.bsky.feed.post',
     record: {
       $type: 'app.bsky.feed.post',
-      text: '',
+      text: postText || '',  // Optional post text
       createdAt: new Date().toISOString(),
       embed: {
         $type: 'app.bsky.embed.images',
@@ -276,33 +265,7 @@ async function postToBluesky(imageData, altText, identifier, password) {
   console.log('✅ Post created successfully!');
   console.log('Post URI:', postResult.uri);
   console.log('Post CID:', postResult.cid);
-  
-  // DEBUG MODE: Auto-delete the post after creation
-  console.log('🗑️ DEBUG MODE: Deleting test post...');
-  try {
-    const deleteResponse = await fetch('https://bsky.social/xrpc/com.atproto.repo.deleteRecord', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${accessJwt}`,
-      },
-      body: JSON.stringify({
-        repo: did,
-        collection: 'app.bsky.feed.post',
-        rkey: postResult.uri.split('/').pop(), // Extract record key from URI
-      }),
-    });
-    
-    if (deleteResponse.ok) {
-      console.log('✅ Test post deleted successfully!');
-      console.log('🎉 Done! Post was created and deleted (debug mode).');
-    } else {
-      console.log('⚠️ Failed to delete post, but it was created successfully');
-    }
-  } catch (deleteError) {
-    console.error('❌ Error deleting post:', deleteError);
-    console.log('⚠️ Post was created but could not be deleted');
-  }
+  console.log('🎉 Done! Check your Bluesky profile.');
 }
 
 /**
