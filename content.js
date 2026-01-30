@@ -276,7 +276,33 @@ async function postToBluesky(imageData, altText, identifier, password) {
   console.log('✅ Post created successfully!');
   console.log('Post URI:', postResult.uri);
   console.log('Post CID:', postResult.cid);
-  console.log('🎉 Done! Check your Bluesky profile.');
+  
+  // DEBUG MODE: Auto-delete the post after creation
+  console.log('🗑️ DEBUG MODE: Deleting test post...');
+  try {
+    const deleteResponse = await fetch('https://bsky.social/xrpc/com.atproto.repo.deleteRecord', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${accessJwt}`,
+      },
+      body: JSON.stringify({
+        repo: did,
+        collection: 'app.bsky.feed.post',
+        rkey: postResult.uri.split('/').pop(), // Extract record key from URI
+      }),
+    });
+    
+    if (deleteResponse.ok) {
+      console.log('✅ Test post deleted successfully!');
+      console.log('🎉 Done! Post was created and deleted (debug mode).');
+    } else {
+      console.log('⚠️ Failed to delete post, but it was created successfully');
+    }
+  } catch (deleteError) {
+    console.error('❌ Error deleting post:', deleteError);
+    console.log('⚠️ Post was created but could not be deleted');
+  }
 }
 
 /**
