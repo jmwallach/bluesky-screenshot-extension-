@@ -1,0 +1,16 @@
+fix: Use DID instead of identifier/email for post creation
+
+The createRecord API requires the 'repo' field to be a DID (Decentralized Identifier)
+or a handle, not an email address. When users authenticate with email, we were
+incorrectly passing the email to the repo field, causing a 400 error:
+"Input/repo must be a valid did or a handle"
+
+Now using the DID returned from authentication (did:plc:...) which is the correct
+identifier for creating posts.
+
+This was discovered through debug logging which showed:
+- Authentication: ✅ Success (got DID)
+- Upload: ✅ Success (image uploaded)
+- Create Post: ❌ Failed (was using email instead of DID)
+
+Fixes #5 - Posts not appearing on Bluesky

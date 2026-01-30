@@ -237,7 +237,7 @@ async function postToBluesky(imageData, altText, identifier, password) {
   // Create post
   console.log('📝 Creating post...');
   const postData = {
-    repo: identifier,
+    repo: did,  // Use DID, not identifier (email/handle)
     collection: 'app.bsky.feed.post',
     record: {
       $type: 'app.bsky.feed.post',
